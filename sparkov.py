@@ -25,8 +25,13 @@ dumpFile = sc.textFile(fileName)
 dumpFile = dumpFile.map(lambda s: s.lower())
 line_words = dumpFile.map(lambda s: s.split(" "))
 tuples = line_words.flatMap(create_tuples).cache()
-# I don't think this mapping maps K --> many V, so will have to change
-markov_dict = tuples.collectAsMap()
+# map tuple (('This', 'is'), 'a')) to (('This', 'is'), ['a'])
+# so then when adding with another tuple with key ('This', 'is'),
+# can just concat the list value
+tuple_map = tuples.map(lambda t: (t[0], [t[1]]))
+tuple_map = tuple_map.reduceByKey(lambda a, b: a + b)
+# turn into a dictionary!!
+tuple_dict = tuple_map.collectAsMap()
 
 # the following gets the counts of each tuple
 tuple_count = tuples.map(lambda t: (t, 1))
